@@ -1,30 +1,22 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# This workflow file requires a free account on Semgrep.dev to
-# manage rules, file ignores, notifications, and more.
-#
-# See https://semgrep.dev/docs
-
+# Name of this GitHub Actions workflow.
 name: Semgrep
 
 on:
+  # Scan changed files in PRs (diff-aware scanning):
+  pull_request: {}
+  # Scan on-demand through GitHub Actions interface:
+  workflow_dispatch: {}
+  # Scan mainline branches and report all findings: 
   push:
-    branches: [ "master" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "master" ]
+    branches: ["master", "main"]
+  # Schedule the CI job (this method uses cron syntax):
   schedule:
-    - cron: '29 3 * * 0'
-
-permissions:
-  contents: read
+    - cron: '20 17 * * *' # Sets Semgrep to scan every day at 17:20 UTC.
+    # It is recommended to change the schedule to a random time.
 
 jobs:
   semgrep:
-    # User definable name of this GitHub Actions job.
+    # User-definable name of this GitHub Actions job:
     name: semgrep/ci 
     # If you are self-hosting, change the following `runs-on` value: 
     runs-on: ubuntu-latest
@@ -39,10 +31,13 @@ jobs:
     steps:
       # Fetch project source with GitHub Actions Checkout.
       - uses: actions/checkout@v3
-      # Run the "semgrep" command on the command line of the docker image.
-      - run: semgrep scan --config=auto --sarif --dataflow-traces --output=semgrep.sarif
-      # Upload SARIF file generated in previous step
-      - name: Upload SARIF file
+      # Run the "semgrep ci" command on the command line of the docker image.
+      - run: semgrep ci --sarif --output=semgrep.sarif
+        env:
+           # Add the rules that Semgrep uses by setting the SEMGREP_RULES environment variable. 
+           SEMGREP_RULES: p/default # more at semgrep.dev/explore
+
+      - name: Upload SARIF file for GitHub Advanced Security Dashboard
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: semgrep.sarif
